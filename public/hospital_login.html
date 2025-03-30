@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blood Bank System</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Hospital Login Form -->
+    <div class="container" id="hospital-login-container">
+        <h1>Hospital Login</h1>
+        <form id="hospitalLoginForm">
+            <div class="form-group">
+                <label for="hospital-email">Email:</label>
+                <input type="email" id="hospital-email" name="email" required>
+            </div>
+            <div class="form-group">
+                <label for="hospital-phone">Phone Number:</label>
+                <input type="tel" id="hospital-phone" name="phone" required>
+            </div>
+            <button type="submit">Login</button>
+        </form>
+        <p>Don't have an account? <a href="hospital_registration.html">Register here</a></p>
+    </div>
+
+    <!-- Hospital Dashboard -->
+    <div id="hospital-dashboard" class="dashboard">
+        <h2>Hospital Dashboard</h2>
+        <button onclick="hospitalLogout()" class="logout-btn">Logout</button>
+        
+        <div class="profile-section">
+            <h3>Hospital Profile</h3>
+            <div id="hospital-profile"></div>
+            <button onclick="showHospitalEdit()">Edit Profile</button>
+        </div>
+        
+        <div id="edit-hospital-form" style="display: none;">
+            <h3>Edit Hospital Profile</h3>
+            <form id="updateHospitalForm">
+                <div class="form-group">
+                    <label for="edit-hospital-name">Hospital Name:</label>
+                    <input type="text" id="edit-hospital-name" required>
+                </div>
+                <div class="form-group">
+                    <label for="edit-hospital-phone">Contact Number:</label>
+                    <input type="text" id="edit-hospital-phone" required>
+                </div>
+                <div class="form-group">
+                    <label for="edit-hospital-address">Address:</label>
+                    <textarea id="edit-hospital-address" rows="4"></textarea>
+                </div>
+                <button type="submit">Update</button>
+                <button type="button" onclick="hideHospitalEdit()">Cancel</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // DOM Elements
+        const hospitalLoginForm = document.getElementById("hospitalLoginForm");
+        const loginContainer = document.getElementById("hospital-login-container");
+        const hospitalDashboard = document.getElementById("hospital-dashboard");
+        
+        // Login Form Submission
+        hospitalLoginForm.addEventListener("submit", async function(e) {
+            e.preventDefault();
+            
+            // Clear previous errors
+            document.querySelectorAll('.error').forEach(el => el.remove());
+            
+            const email = document.getElementById("hospital-email").value.trim();
+            const phone = document.getElementById("hospital-phone").value.trim();
+            let isValid = true;
+
+            // Email validation
+            if (!email) {
+                showError("hospital-email", "Email is required");
+                isValid = false;
+            } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                showError("hospital-email", "Invalid email format");
+                isValid = false;
+            }
+
+            // Phone validation
+            if (!phone) {
+                showError("hospital-phone", "Phone number is required");
+                isValid = false;
+            } else if (phone.replace(/\D/g, '').length < 10) {
+                showError("hospital-phone", "Invalid phone number");
+                isValid = false;
+            }
+
+            if (!isValid) return;
+
+            try {
+                // Show loading state
+                const btn = hospitalLoginForm.querySelector("button");
+                btn.disabled = true;
+                btn.textContent = "Logging in...";
+
+                const response = await fetch("http://localhost:3000/api/hospital/login", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({ email, phone }),
+                });
+
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.message || "Login failed");
+                }
+
+                // Successful login - show dashboard
+                loginContainer.style.display = "none";
+                hospitalDashboard.style.display = "block";
+                showHospitalDashboard(data.hospital);
+            } catch (error) {
+                console.error("Login error:", error);
+                showFormError(error.message);
+            } finally {
+                // Reset button state
+                const btn = hospitalLoginForm.querySelector("button");
+                btn.disabled = false;
+                btn.textContent = "Login";
+            }
+        });
+
+        // Show hospital dashboard
+        function showHospitalDashboard(hospital) {
+            document.getElementById("hospital-profile").innerHTML = `
+                <p><strong>Name:</strong> ${hospital.name}</p>
+                <p><strong>Email:</strong> ${hospital.email}</p>
+                <p><strong>Phone:</strong> ${hospital.phone}</p>
+                <p><strong>Address:</strong> ${hospital.address}</p>
+                <p><strong>Contact Person:</strong> ${hospital.contact_person}</p>
+            `;
+            
+            // Set edit form values
+            document.getElementById("edit-hospital-name").value = hospital.name;
+            document.getElementById("edit-hospital-phone").value = hospital.phone;
+            document.getElementById("edit-hospital-address").value = hospital.address;
+            
+            // Update form submission
+            document.getElementById("updateHospitalForm").addEventListener("submit", async function(e) {
+                e.preventDefault();
+                const updatedData = {
+                    name: document.getElementById("edit-hospital-name").value,
+                    phone: document.getElementById("edit-hospital-phone").value,
+                    address: document.getElementById("edit-hospital-address").value
+                };
+                
+                try {
+                    const response = await fetch(`http://localhost:3000/api/hospital/${hospital.id}`, {
+                        method: "PUT",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "Authorization": `Bearer ${localStorage.getItem('hospitalToken')}`
+                        },
+                        body: JSON.stringify(updatedData)
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (response.ok) {
+                        alert("Profile updated successfully!");
+                        showHospitalDashboard({...hospital, ...updatedData});
+                        hideHospitalEdit();
+                    } else {
+                        throw new Error(data.message || "Update failed");
+                    }
+                } catch (error) {
+                    console.error("Update error:", error);
+                    alert(error.message);
+                }
+            });
+        }
+
+        // Logout function
+        function hospitalLogout() {
+            localStorage.removeItem('hospitalToken');
+            loginContainer.style.display = "block";
+            hospitalDashboard.style.display = "none";
+            hospitalLoginForm.reset();
+        }
+
+        // Edit profile functions
+        function showHospitalEdit() {
+            document.getElementById("edit-hospital-form").style.display = "block";
+        }
+
+        function hideHospitalEdit() {
+            document.getElementById("edit-hospital-form").style.display = "none";
+        }
+
+        // Error handling functions
+        function showError(fieldId, message) {
+            const field = document.getElementById(fieldId);
+            const error = document.createElement('div');
+            error.className = 'error';
+            error.textContent = message;
+            field.parentNode.appendChild(error);
+        }
+
+        function showFormError(message) {
+            const form = document.getElementById("hospitalLoginForm");
+            const existingError = form.querySelector('.form-error');
+            if (existingError) existingError.remove();
+            
+            const error = document.createElement('div');
+            error.className = 'form-error';
+            error.textContent = message;
+            form.appendChild(error);
+        }
+    </script>
+</body>
+</html>

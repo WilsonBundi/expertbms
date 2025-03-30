@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hospital Registration | Blood Management System</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="auth-container">
+        <h1>Hospital Registration</h1>
+        <form id="hospitalRegisterForm">
+            <div class="form-group">
+                <label for="hospitalName">Hospital Name</label>
+                <input type="text" id="hospitalName" name="hospitalName" required>
+            </div>
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" required>
+            </div>
+            <div class="form-group">
+                <label for="contactNumber">Contact Number</label>
+                <input type="tel" id="contactNumber" name="contactNumber" required>
+            </div>
+            <div class="form-group">
+                <label for="address">Address</label>
+                <textarea id="address" name="address" required></textarea>
+            </div>
+            <div class="form-group">
+                <label for="contactPerson">Contact Person</label>
+                <input type="text" id="contactPerson" name="contactPerson" required>
+            </div>
+            <button type="submit" class="btn-submit" id="registerBtn">Register</button>
+        </form>
+        <p>Already have an account? <a href="hospital_login.html">Login here</a></p>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:3000/api';
+        const hospitalRegisterForm = document.getElementById('hospitalRegisterForm');
+        const registerBtn = document.getElementById('registerBtn');
+
+        // Form submission
+        hospitalRegisterForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            // Clear previous errors
+            document.querySelectorAll('.error').forEach(el => el.textContent = '');
+            
+            // Get form values
+            const formData = {
+                name: document.getElementById('hospitalName').value.trim(),
+                email: document.getElementById('email').value.trim(),
+                phone: document.getElementById('contactNumber').value.trim(),
+                address: document.getElementById('address').value.trim(),
+                contact_person: document.getElementById('contactPerson').value.trim()
+            };
+            
+            try {
+                // Show loading state
+                registerBtn.disabled = true;
+                registerBtn.textContent = 'Registering...';
+                
+                // API call to register hospital
+                const response = await fetch(`${API_BASE_URL}/hospital/register`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                // Check response status
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || 'Registration failed');
+                }
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Registration successful - redirect to login
+                    alert('Registration successful! You can now login.');
+                    window.location.href = 'hospital_login.html';
+                } else {
+                    throw new Error(data.message || 'Registration failed');
+                }
+                
+            } catch (error) {
+                console.error('Registration error:', error);
+                
+                // Show error message
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'form-error';
+                errorDiv.textContent = error.message;
+                
+                const existingError = hospitalRegisterForm.querySelector('.form-error');
+                if (existingError) {
+                    existingError.textContent = error.message;
+                } else {
+                    hospitalRegisterForm.insertBefore(errorDiv, registerBtn);
+                }
+            } finally {
+                registerBtn.disabled = false;
+                registerBtn.textContent = 'Register';
+            }
+        });
+    </script>
+</body>
+</html>

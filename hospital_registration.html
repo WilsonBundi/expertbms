@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hospital Registration | Blood Management System</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="auth-container">
+        <h1>Hospital Registration</h1>
+        <form id="hospitalRegisterForm">
+            <div class="form-group">
+                <label for="hospitalName">Hospital Name</label>
+                <input type="text" id="hospitalName" name="hospitalName" required>
+            </div>
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required minlength="8">
+            </div>
+            <div class="form-group">
+                <label for="confirmPassword">Confirm Password</label>
+                <input type="password" id="confirmPassword" name="confirmPassword" required>
+            </div>
+            <div class="form-group">
+                <label for="contactNumber">Contact Number</label>
+                <input type="tel" id="contactNumber" name="contactNumber" required>
+            </div>
+            <div class="form-group">
+                <label for="address">Address</label>
+                <textarea id="address" name="address" required></textarea>
+            </div>
+            <button type="submit" class="btn-submit">Register</button>
+        </form>
+        <p>Already have an account? <a href="hospital_login.html">Login here</a></p>
+    </div>
+
+
+
+<!-- Hospital Dashboard (hidden by default) -->
+<div id="hospital-dashboard" class="dashboard" style="display: none;">
+    <h2>Hospital Dashboard</h2>
+    <button onclick="logout()" class="logout-btn">Logout</button>
+    
+    <div class="profile-section">
+        <h3>Your Profile</h3>
+        <div id="hospital-profile"></div>
+        <button onclick="showEditProfile()">Edit Profile</button>
+    </div>
+    
+    <div class="blood-requests">
+        <h3>Blood Requests</h3>
+        <table id="blood-requests-table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Blood Type</th>
+                    <th>Quantity (ml)</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+        <button onclick="showRequestBloodForm()">Request Blood</button>
+    </div>
+    
+    <div class="inventory-section">
+        <h3>Blood Inventory</h3>
+        <table id="blood-inventory-table">
+            <thead>
+                <tr>
+                    <th>Blood Type</th>
+                    <th>Available (ml)</th>
+                    <th>Last Updated</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+    
+    <div id="edit-profile-form" style="display: none;">
+        <h3>Edit Profile</h3>
+        <form id="updateHospitalForm">
+            <div class="form-group">
+                <label for="edit-name">Hospital Name:</label>
+                <input type="text" id="edit-name" required>
+            </div>
+            <div class="form-group">
+                <label for="edit-address">Address:</label>
+                <textarea id="edit-address" rows="2" required></textarea>
+            </div>
+            <div class="form-group">
+                <label for="edit-phone">Phone:</label>
+                <input type="text" id="edit-phone" required>
+            </div>
+            <div class="form-group">
+                <label for="edit-contact-person">Contact Person:</label>
+                <input type="text" id="edit-contact-person" required>
+            </div>
+            <button type="submit">Update</button>
+            <button type="button" onclick="hideEditProfile()">Cancel</button>
+        </form>
+    </div>
+    
+    <div id="request-blood-form" style="display: none;">
+        <h3>Request Blood</h3>
+        <form id="bloodRequestForm">
+            <div class="form-group">
+                <label for="request-blood-type">Blood Type:</label>
+                <select id="request-blood-type" required>
+                    <option value="A+">A+</option>
+                    <option value="A-">A-</option>
+                    <option value="B+">B+</option>
+                    <option value="B-">B-</option>
+                    <option value="AB+">AB+</option>
+                    <option value="AB-">AB-</option>
+                    <option value="O+">O+</option>
+                    <option value="O-">O-</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="request-quantity">Quantity (ml):</label>
+                <input type="number" id="request-quantity" min="100" required>
+            </div>
+            <div class="form-group">
+                <label for="request-urgency">Urgency:</label>
+                <select id="request-urgency" required>
+                    <option value="normal">Normal</option>
+                    <option value="urgent">Urgent</option>
+                    <option value="emergency">Emergency</option>
+                </select>
+            </div>
+            <button type="submit">Submit Request</button>
+            <button type="button" onclick="hideRequestBloodForm()">Cancel</button>
+        </form>
+    </div>
+</div>
+
+
+
+
+
+    <script src="script.js"></script>
+</body>
+</html>

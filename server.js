@@ -1,12 +1,12 @@
 require("dotenv").config();
 const express = require("express");
 const mysql = require("mysql2/promise");
-const bcrypt = require("bcrypt");
 const bodyParser = require("body-parser");
 const cors = require("cors");
+const jwt = require("jsonwebtoken");
 
 const app = express();
-const port = 3000;
+const port = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors());
@@ -24,9 +24,8 @@ const pool = mysql.createPool({
   queueLimit: 0,
 });
 
-// Test database connection
-pool
-  .getConnection()
+// Verify database connection
+pool.getConnection()
   .then((conn) => {
     console.log("Connected to MySQL database");
     conn.release();
@@ -36,232 +35,375 @@ pool
     process.exit(1);
   });
 
-// Routes
-
-// Donor login
-app.post("/api/donor/login", async (req, res) => {
-  try {
-    const { email, phone } = req.body;
-    const [rows] = await pool.query(
-      "SELECT * FROM donors WHERE email = ? AND phone = ?",
-      [email, phone]
-    );
-
-    if (rows.length === 0) {
-      return res
-        .status(401)
-        .json({ success: false, message: "Invalid credentials" });
+// JWT Authentication Middleware
+const authenticate = (role) => {
+  return async (req, res, next) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
     }
 
-    const donor = rows[0];
-    res.json({ success: true, donor });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ success: false, message: "Server error" });
-  }
-});
+    const token = authHeader.split(" ")[1];
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || "your_jwt_secret");
+      const [user] = await pool.query(
+        `SELECT * FROM ${role}s WHERE id = ?`,
+        [decoded.id]
+      );
+      
+      if (!user.length) throw new Error();
+      req.user = user[0];
+      req.role = role;
+      next();
+    } catch (err) {
+      res.status(401).json({ success: false, message: "Invalid token" });
+    }
+  };
+};
 
-// Donor registration
+// ======================
+// DONOR ROUTES
+// ======================
+
+// Donor Registration
 app.post("/api/donor/register", async (req, res) => {
   try {
     const { name, email, phone, blood_type, medical_history } = req.body;
 
-    // Check if donor already exists
+    if (!name || !email || !phone || !blood_type) {
+      return res.status(400).json({
+        success: false,
+        message: "Required fields: name, email, phone, blood_type"
+      });
+    }
+
     const [existing] = await pool.query(
       "SELECT id FROM donors WHERE email = ? OR phone = ?",
       [email, phone]
     );
+
     if (existing.length > 0) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "Donor with this email or phone already exists",
-        });
+      return res.status(409).json({
+        success: false,
+        message: "Donor with this email or phone already exists"
+      });
     }
 
-    // Insert new donor
     const [result] = await pool.query(
       "INSERT INTO donors (name, email, phone, blood_type, medical_history) VALUES (?, ?, ?, ?, ?)",
       [name, email, phone, blood_type, medical_history || null]
     );
 
-    res.json({ success: true, donorId: result.insertId });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ success: false, message: "Server error" });
-  }
-});
-
-// Admin login
-
-// Admin login
-app.post('/api/admin/login', async (req, res) => {
-    try {
-        const { username, password } = req.body;
-        
-        if (!username || !password) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'Username and password are required' 
-            });
-        }
-
-        // Debug log
-        console.log(`Login attempt for username: ${username}`);
-
-        const [rows] = await pool.query(
-            'SELECT * FROM admins WHERE username = ?', 
-            [username]
-        );
-        
-        if (rows.length === 0) {
-            console.log('No admin found with that username');
-            return res.status(401).json({ 
-                success: false, 
-                message: 'Invalid credentials' 
-            });
-        }
-        
-        const admin = rows[0];
-        console.log('Found admin:', admin);
-
-        // For testing - compare plain text if bcrypt isn't working
-        // if (password !== admin.password) {
-        //     return res.status(401).json({ success: false, message: 'Invalid credentials' });
-        // }
-
-        // Proper bcrypt comparison
-        const passwordMatch = await bcrypt.compare(password, admin.password);
-        
-        if (!passwordMatch) {
-            console.log('Password does not match');
-            return res.status(401).json({ 
-                success: false, 
-                message: 'Invalid credentials' 
-            });
-        }
-        
-        console.log('Login successful');
-        res.json({ 
-            success: true,
-            admin: {
-                id: admin.id,
-                username: admin.username
-            }
-        });
-    } catch (error) {
-        console.error('Admin login error:', error);
-        res.status(500).json({ 
-            success: false, 
-            message: 'Server error during login' 
-        });
-    }
-});
-
-// Get donor profile
-app.get("/api/donor/:id", async (req, res) => {
-  try {
-    const donorId = req.params.id;
-    const [rows] = await pool.query("SELECT * FROM donors WHERE id = ?", [
-      donorId,
-    ]);
-
-    if (rows.length === 0) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Donor not found" });
-    }
-
-    const [donations] = await pool.query(
-      "SELECT * FROM donations WHERE donor_id = ? ORDER BY donation_date DESC",
-      [donorId]
+    const token = jwt.sign(
+      { id: result.insertId, role: "donor" },
+      process.env.JWT_SECRET || "your_jwt_secret",
+      { expiresIn: "8h" }
     );
 
-    res.json({ success: true, donor: rows[0], donations });
+    res.status(201).json({
+      success: true,
+      message: "Donor registered successfully",
+      token,
+      donor: { id: result.insertId, name, email, phone, blood_type }
+    });
   } catch (error) {
-    console.error(error);
+    console.error("Donor registration error:", error);
     res.status(500).json({ success: false, message: "Server error" });
   }
 });
 
-// Update donor profile
-app.put("/api/donor/:id", async (req, res) => {
+// Donor Login
+app.post("/api/donor/login", async (req, res) => {
   try {
-    const donorId = req.params.id;
-    const { name, phone, medical_history } = req.body;
+    const { email, phone } = req.body;
+    
+    if (!email || !phone) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Email and phone required" 
+      });
+    }
 
+    const [donor] = await pool.query(
+      "SELECT * FROM donors WHERE email = ? AND phone = ?",
+      [email, phone]
+    );
+
+    if (!donor.length) {
+      return res.status(401).json({ 
+        success: false, 
+        message: "Invalid credentials" 
+      });
+    }
+
+    const token = jwt.sign(
+      { id: donor[0].id, role: "donor" },
+      process.env.JWT_SECRET || "your_jwt_secret",
+      { expiresIn: "8h" }
+    );
+
+    res.json({
+      success: true,
+      token,
+      donor: {
+        id: donor[0].id,
+        name: donor[0].name,
+        email: donor[0].email,
+        phone: donor[0].phone,
+        blood_type: donor[0].blood_type
+      }
+    });
+  } catch (error) {
+    console.error("Donor login error:", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+// Get Donor Profile
+app.get("/api/donor/profile", authenticate("donor"), async (req, res) => {
+  try {
+    res.json({ success: true, donor: req.user });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+// Update Donor Profile
+app.put("/api/donor/profile", authenticate("donor"), async (req, res) => {
+  try {
+    const { name, phone, medical_history } = req.body;
     await pool.query(
       "UPDATE donors SET name = ?, phone = ?, medical_history = ? WHERE id = ?",
-      [name, phone, medical_history || null, donorId]
+      [name, phone, medical_history, req.user.id]
+    );
+    res.json({ success: true, message: "Profile updated" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Update failed" });
+  }
+});
+
+// ======================
+// HOSPITAL ROUTES
+// ======================
+
+// Hospital Registration
+app.post("/api/hospital/register", async (req, res) => {
+  try {
+    const { name, email, phone, address, contact_person } = req.body;
+
+    if (!name || !email || !phone || !address || !contact_person) {
+      return res.status(400).json({
+        success: false,
+        message: "All fields are required"
+      });
+    }
+
+    const [existing] = await pool.query(
+      "SELECT id FROM hospitals WHERE email = ? OR phone = ?",
+      [email, phone]
     );
 
-    res.json({ success: true });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ success: false, message: "Server error" });
-  }
-});
+    if (existing.length > 0) {
+      return res.status(409).json({
+        success: false,
+        message: "Hospital with this email/phone exists"
+      });
+    }
 
-// Admin: Get all donors
-app.get("/api/admin/donors", async (req, res) => {
-  try {
-    const [rows] = await pool.query("SELECT * FROM donors ORDER BY name");
-    res.json({ success: true, donors: rows });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ success: false, message: "Server error" });
-  }
-});
-
-// Admin: Search donors
-app.get("/api/admin/donors/search", async (req, res) => {
-  try {
-    const query = req.query.q;
-    const [rows] = await pool.query(
-      `
-            SELECT * FROM donors 
-            WHERE name LIKE ? OR email LIKE ? OR blood_type LIKE ?
-            ORDER BY name
-        `,
-      [`%${query}%`, `%${query}%`, `%${query}%`]
+    const [result] = await pool.query(
+      "INSERT INTO hospitals (name, email, phone, address, contact_person) VALUES (?, ?, ?, ?, ?)",
+      [name, email, phone, address, contact_person]
     );
 
-    res.json({ success: true, donors: rows });
+    const token = jwt.sign(
+      { id: result.insertId, role: "hospital" },
+      process.env.JWT_SECRET || "your_jwt_secret",
+      { expiresIn: "8h" }
+    );
+
+    res.status(201).json({
+      success: true,
+      message: "Hospital registered",
+      token,
+      hospital: { id: result.insertId, name, email, phone, address }
+    });
   } catch (error) {
-    console.error(error);
+    console.error("Hospital registration error:", error);
     res.status(500).json({ success: false, message: "Server error" });
   }
 });
 
-// Admin: Update donor
-app.put("/api/admin/donors/:id", async (req, res) => {
+// Hospital Login
+app.post("/api/hospital/login", async (req, res) => {
   try {
-    const donorId = req.params.id;
-    const { name, email, phone, blood_type, medical_history } = req.body;
+    const { email, phone } = req.body;
+    
+    if (!email || !phone) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Email and phone required" 
+      });
+    }
+
+    const [hospital] = await pool.query(
+      "SELECT * FROM hospitals WHERE email = ? AND phone = ?",
+      [email, phone]
+    );
+
+    if (!hospital.length) {
+      return res.status(401).json({ 
+        success: false, 
+        message: "Invalid credentials" 
+      });
+    }
+
+    const token = jwt.sign(
+      { id: hospital[0].id, role: "hospital" },
+      process.env.JWT_SECRET || "your_jwt_secret",
+      { expiresIn: "8h" }
+    );
+
+    res.json({
+      success: true,
+      token,
+      hospital: {
+        id: hospital[0].id,
+        name: hospital[0].name,
+        email: hospital[0].email,
+        phone: hospital[0].phone,
+        address: hospital[0].address
+      }
+    });
+  } catch (error) {
+    console.error("Hospital login error:", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+// Get Hospital Profile
+app.get("/api/hospital/profile", authenticate("hospital"), async (req, res) => {
+  try {
+    res.json({ success: true, hospital: req.user });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+// Update Hospital Profile
+app.put("/api/hospital/profile", authenticate("hospital"), async (req, res) => {
+  try {
+    const { name, phone, address } = req.body;
+    await pool.query(
+      "UPDATE hospitals SET name = ?, phone = ?, address = ? WHERE id = ?",
+      [name, phone, address, req.user.id]
+    );
+    res.json({ success: true, message: "Profile updated" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Update failed" });
+  }
+
+
+});
+// Hospital Profile Update
+app.put('/api/hospital/profile', authenticate('hospital'), async (req, res) => {
+  try {
+    const { name, phone, address } = req.body;
+    
+    // Input validation
+    if (!name || !phone || !address) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'All fields are required'
+      });
+    }
 
     await pool.query(
-      "UPDATE donors SET name = ?, email = ?, phone = ?, blood_type = ?, medical_history = ? WHERE id = ?",
-      [name, email, phone, blood_type, medical_history || null, donorId]
+      "UPDATE hospitals SET name = ?, phone = ?, address = ? WHERE id = ?",
+      [name, phone, address, req.user.id]
     );
-
-    res.json({ success: true });
+    
+    res.json({ 
+      success: true,
+      message: 'Profile updated successfully',
+      hospital: { name, phone, address }
+    });
+    
   } catch (error) {
-    console.error(error);
+    console.error('Update error:', error);
+    res.status(500).json({ 
+      success: false,
+      message: error.message || 'Update failed'
+    });
+  }
+});
+// ======================
+// BLOOD INVENTORY ROUTES
+// ======================
+
+// Get Blood Inventory (Hospital Auth Required)
+app.get("/api/blood-inventory", authenticate("hospital"), async (req, res) => {
+  try {
+    const [inventory] = await pool.query(
+      "SELECT blood_type, quantity, expiration_date FROM blood_inventory WHERE hospital_id = ?",
+      [req.user.id]
+    );
+    res.json({ success: true, inventory });
+  } catch (error) {
     res.status(500).json({ success: false, message: "Server error" });
   }
 });
 
-// Start server
-app.listen(port, () => {
-  console.log(`Server running at http://localhost:${port}`);
+// ======================
+// DONATION ROUTES
+// ======================
+
+// Record Donation (Hospital Auth Required)
+app.post("/api/donations", authenticate("hospital"), async (req, res) => {
+  try {
+    const { donor_id, blood_type, quantity } = req.body;
+    
+    await pool.query(
+      "INSERT INTO donations (hospital_id, donor_id, blood_type, quantity) VALUES (?, ?, ?, ?)",
+      [req.user.id, donor_id, blood_type, quantity]
+    );
+
+    // Update inventory
+    await pool.query(
+      `INSERT INTO blood_inventory (hospital_id, blood_type, quantity)
+       VALUES (?, ?, ?)
+       ON DUPLICATE KEY UPDATE quantity = quantity + VALUES(quantity)`,
+      [req.user.id, blood_type, quantity]
+    );
+
+    res.status(201).json({ success: true, message: "Donation recorded" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Server error" });
+  }
 });
 
+// Get Donation History (Donor Auth Required)
+app.get("/api/donations", authenticate("donor"), async (req, res) => {
+  try {
+    const [donations] = await pool.query(
+      `SELECT d.date, d.quantity, h.name AS hospital_name 
+       FROM donations d
+       JOIN hospitals h ON d.hospital_id = h.id
+       WHERE d.donor_id = ?`,
+      [req.user.id]
+    );
+    res.json({ success: true, donations });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
 
+// Error Handling Middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ success: false, message: "Internal server error" });
+});
 
-// test route to server.js
-app.get('/api/test-bcrypt', async (req, res) => {
-    const hash = await bcrypt.hash('admin123', 10);
-    const match = await bcrypt.compare('admin123', hash);
-    res.json({ hash, match });
+// Start Server
+app.listen(port, () => {
+  console.log(`Server running on port ${port}`);
 });

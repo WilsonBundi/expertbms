@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blood Donor System</title>
+    <link rel="stylesheet" href="styles.css">
+       
+</head>
+<body>
+    <!-- Login Form -->
+    <div class="container" id="login-container">
+        <h1>Donor Login</h1>
+        <form id="donorLoginForm">
+            <div class="form-group">
+                <label for="donor-email">Email:</label>
+                <input type="email" id="donor-email" name="email" required>
+            </div>
+            <div class="form-group">
+                <label for="donor-phone">Phone:</label>
+                <input type="text" id="donor-phone" name="phone" required>
+            </div>
+            <button type="submit">Login</button>
+        </form>
+        <p>Don't have an account? <a href="donor_registration.html">Register here</a></p>
+    </div>
+
+    <!-- Donor Dashboard -->
+    <div id="donor-dashboard" class="dashboard">
+        <h2>Donor Dashboard</h2>
+        <button onclick="logout()" class="logout-btn">Logout</button>
+        
+        <div class="profile-section">
+            <h3>Your Profile</h3>
+            <div id="donor-profile"></div>
+            <button onclick="showEditProfile()">Edit Profile</button>
+        </div>
+        
+        <div class="donation-history">
+            <h3>Donation History</h3>
+            <table id="donation-history-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Quantity (ml)</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+        
+        <div id="edit-profile-form" style="display: none;">
+            <h3>Edit Profile</h3>
+            <form id="updateDonorForm">
+                <div class="form-group">
+                    <label for="edit-name">Full Name:</label>
+                    <input type="text" id="edit-name" required>
+                </div>
+                <div class="form-group">
+                    <label for="edit-phone">Phone:</label>
+                    <input type="text" id="edit-phone" required>
+                </div>
+                <div class="form-group">
+                    <label for="edit-medical-history">Medical History:</label>
+                    <textarea id="edit-medical-history" rows="4"></textarea>
+                </div>
+                <button type="submit">Update</button>
+                <button type="button" onclick="hideEditProfile()">Cancel</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // DOM Elements
+        const donorLoginForm = document.getElementById("donorLoginForm");
+        const loginContainer = document.getElementById("login-container");
+        const donorDashboard = document.getElementById("donor-dashboard");
+        
+        // Login Form Submission
+        donorLoginForm.addEventListener("submit", async function(e) {
+            e.preventDefault();
+            
+            // Clear previous errors
+            document.querySelectorAll('.error').forEach(el => el.remove());
+            
+            const email = document.getElementById("donor-email").value.trim();
+            const phone = document.getElementById("donor-phone").value.trim();
+            let isValid = true;
+        
+            // Email validation
+            if (!email) {
+                showError("donor-email", "Email is required");
+                isValid = false;
+            } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                showError("donor-email", "Please enter a valid email");
+                isValid = false;
+            }
+        
+            // Phone validation
+            if (!phone) {
+                showError("donor-phone", "Phone number is required");
+                isValid = false;
+            } else if (phone.replace(/\D/g, '').length < 10) {
+                showError("donor-phone", "Phone number should be at least 10 digits");
+                isValid = false;
+            }
+        
+            if (!isValid) return;
+        
+            try {
+                // Show loading state
+                const btn = donorLoginForm.querySelector("button");
+                btn.disabled = true;
+                btn.textContent = "Logging in...";
+        
+                const response = await fetch("http://localhost:3000/api/donor/login", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({ email, phone }),
+                });
+        
+                // Check if response is JSON
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    const text = await response.text();
+                    throw new Error(`Expected JSON but got: ${text.substring(0, 100)}...`);
+                }
+        
+                const data = await response.json();
+        
+                if (!response.ok) {
+                    throw new Error(data.message || "Login failed");
+                }
+        
+                // Successful login - show dashboard
+                loginContainer.style.display = "none";
+                donorDashboard.style.display = "block";
+                showDonorDashboard(data.donor);
+            } catch (error) {
+                console.error("Login error:", error);
+                showFormError(error.message.includes('Expected JSON') 
+                    ? "Server returned an unexpected response. Please check the API endpoint."
+                    : error.message);
+            } finally {
+                // Reset button state
+                const btn = donorLoginForm.querySelector("button");
+                btn.disabled = false;
+                btn.textContent = "Login";
+            }
+        });
+        
+        // Show donor dashboard with data
+        function showDonorDashboard(donor) {
+            document.getElementById("donor-profile").innerHTML = `
+                <p><strong>Name:</strong> ${donor.name}</p>
+                <p><strong>Email:</strong> ${donor.email}</p>
+                <p><strong>Phone:</strong> ${donor.phone}</p>
+                <p><strong>Blood Type:</strong> ${donor.blood_type}</p>
+                <p><strong>Medical History:</strong> ${donor.medical_history || "None"}</p>
+            `;
+            
+            // Set edit form values
+            document.getElementById("edit-name").value = donor.name;
+            document.getElementById("edit-phone").value = donor.phone;
+            document.getElementById("edit-medical-history").value = donor.medical_history || "";
+            
+            // Set up form submission
+            document.getElementById("updateDonorForm").addEventListener("submit", async function(e) {
+                e.preventDefault();
+                const updatedData = {
+                    name: document.getElementById("edit-name").value,
+                    phone: document.getElementById("edit-phone").value,
+                    medical_history: document.getElementById("edit-medical-history").value
+                };
+                
+                try {
+                    const response = await fetch(`http://localhost:3000/api/donor/${donor.id}`, {
+                        method: "PUT",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify(updatedData)
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (response.ok) {
+                        alert("Profile updated successfully!");
+                        showDonorDashboard({...donor, ...updatedData});
+                        hideEditProfile();
+                    } else {
+                        throw new Error(data.message || "Update failed");
+                    }
+                } catch (error) {
+                    console.error("Update error:", error);
+                    alert(error.message);
+                }
+            });
+        }
+        
+        // Logout function
+        function logout() {
+            loginContainer.style.display = "block";
+            donorDashboard.style.display = "none";
+            donorLoginForm.reset();
+        }
+        
+        // Edit profile functions
+        function showEditProfile() {
+            document.getElementById("edit-profile-form").style.display = "block";
+        }
+        
+        function hideEditProfile() {
+            document.getElementById("edit-profile-form").style.display = "none";
+        }
+        
+        // Helper functions for showing errors
+        function showError(fieldId, message) {
+            const field = document.getElementById(fieldId);
+            const error = document.createElement('div');
+            error.className = 'error';
+            error.textContent = message;
+            field.parentNode.appendChild(error);
+        }
+        
+        function showFormError(message) {
+            const form = document.getElementById("donorLoginForm");
+            const existingError = form.querySelector('.form-error');
+            if (existingError) existingError.remove();
+            
+            const error = document.createElement('div');
+            error.className = 'form-error';
+            error.textContent = message;
+            form.appendChild(error);
+        }
+    </script>
+</body>
+</html>

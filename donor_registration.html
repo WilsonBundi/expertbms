@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Donor Registration | Blood Management System</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Blood Donor Registration</h1>
+        <form id="donorRegisterForm">
+            <div class="form-group">
+                <label for="reg-name">Full Name:</label>
+                <input type="text" id="reg-name" name="name" required>
+            </div>
+            <div class="form-group">
+                <label for="reg-email">Email:</label>
+                <input type="email" id="reg-email" name="email" required>
+            </div>
+            <div class="form-group">
+                <label for="reg-phone">Phone:</label>
+                <input type="text" id="reg-phone" name="phone" required>
+            </div>
+            <div class="form-group">
+                <label for="reg-blood-type">Blood Type:</label>
+                <select id="reg-blood-type" name="blood-type" required>
+                    <option value="">Select Blood Type</option>
+                    <option value="A+">A+</option>
+                    <option value="A-">A-</option>
+                    <option value="B+">B+</option>
+                    <option value="B-">B-</option>
+                    <option value="AB+">AB+</option>
+                    <option value="AB-">AB-</option>
+                    <option value="O+">O+</option>
+                    <option value="O-">O-</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="reg-medical-history">Medical History (any conditions or medications):</label>
+                <textarea id="reg-medical-history" name="medical-history" rows="4"></textarea>
+            </div>
+            <button type="submit">Register</button>
+        </form>
+        <p>Already have an account? <a href="donor_login.html">Login here</a></p>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>

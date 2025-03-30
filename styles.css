@@ -1,132 +1,441 @@
-body {
-    font-family: Arial, sans-serif;
-    line-height: 1.6;
-    margin: 0;
-    padding: 20px;
-    background-color: #f5f5f5;
-    color: #333;
-}
-
-.container {
-    max-width: 1000px;
-    margin: 0 auto;
-    background: #fff;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-}
-
-h1, h2, h3 {
-    color: #d32f2f;
-}
-
-.tabs {
-    display: flex;
-    margin-bottom: 20px;
-    border-bottom: 1px solid #ddd;
-}
-
-.tab-btn {
-    padding: 10px 20px;
-    background: #f1f1f1;
-    border: none;
-    cursor: pointer;
-    margin-right: 5px;
-    border-radius: 5px 5px 0 0;
-}
-
-.tab-btn.active {
-    background: #d32f2f;
-    color: white;
-}
-
-.tab-content {
-    display: none;
-    padding: 20px;
-    border: 1px solid #ddd;
-    border-top: none;
-}
-
-.tab-content.active {
-    display: block;
-}
-
-.form-group {
-    margin-bottom: 15px;
-}
-
-label {
-    display: block;
-    margin-bottom: 5px;
-    font-weight: bold;
-}
-
-input[type="text"],
-input[type="email"],
-input[type="password"],
-input[type="number"],
-select,
-textarea {
-    width: 100%;
-    padding: 8px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
+/* ================ */
+/* GLOBAL STYLES */
+/* ================ */
+:root {
+    --primary-color: #d32f2f;
+    --primary-dark: #b71c1c;
+    --primary-light: #ff6659;
+    --secondary-color: #333;
+    --light-gray: #f8f9fa;
+    --medium-gray: #ddd;
+    --dark-gray: #666;
+    --white: #fff;
+    --shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    --border-radius: 8px;
+    --transition: all 0.3s ease;
+  }
+  
+  * {
     box-sizing: border-box;
-}
-
-button {
-    background-color: #d32f2f;
-    color: white;
-    padding: 10px 15px;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 16px;
-}
-
-button:hover {
-    background-color: #b71c1c;
-}
-
-.dashboard {
-    margin-top: 20px;
-}
-
-.logout-btn {
-    background-color: #666;
-    float: right;
-}
-
-.logout-btn:hover {
-    background-color: #444;
-}
-
-table {
+    margin: 0;
+    padding: 0;
+  }
+  
+  body {
+    font-family: 'Arial', sans-serif;
+    line-height: 1.6;
+    background-color: var(--light-gray);
+    color: var(--secondary-color);
+    min-height: 100vh;
+  }
+  
+  /* ================ */
+  /* HEADER & NAVIGATION */
+  /* ================ */
+  header {
+    background-color: var(--primary-dark);
+    color: var(--white);
+    text-align: center;
+    padding: 20px 0;
+    font-size: 24px;
+    font-weight: bold;
+    box-shadow: var(--shadow);
+  }
+  
+  nav {
+    background-color: var(--primary-color);
+    padding: 10px 0;
+    text-align: center;
+  }
+  
+  nav ul {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  
+  nav ul li {
+    margin: 0 15px;
+  }
+  
+  nav ul li a {
+    color: var(--white);
+    text-decoration: none;
+    font-size: 18px;
+    font-weight: bold;
+    padding: 8px 12px;
+    border-radius: var(--border-radius);
+    transition: var(--transition);
+  }
+  
+  nav ul li a:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+  }
+  
+  /* ================ */
+  /* AUTH CONTAINERS */
+  /* ================ */
+  .auth-container {
+    background: var(--white);
+    padding: 2.5rem;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
     width: 100%;
-    border-collapse: collapse;
-    margin-top: 20px;
-}
+    max-width: 500px;
+    margin: 3rem auto;
+  }
+  
+  .auth-container h1 {
+    color: var(--primary-color);
+    margin-bottom: 1.5rem;
+    font-size: 1.8rem;
+    text-align: center;
+  }
+  
+  /* ================ */
+  /* FORM STYLES */
+  /* ================ */
+  .auth-form {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .form-group {
+    margin-bottom: 1.5rem;
+  }
+  
+  .form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: bold;
+    color: var(--secondary-color);
+  }
+  
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--medium-gray);
+    border-radius: var(--border-radius);
+    font-size: 1rem;
+    transition: var(--transition);
+  }
+  
+  .form-group input:focus,
+  .form-group select:focus,
+  .form-group textarea:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(211, 47, 47, 0.2);
+  }
+  
+  .form-group textarea {
+    min-height: 100px;
+    resize: vertical;
+  }
+  
+  /* ================ */
+  /* BUTTON STYLES */
+  /* ================ */
+  .btn {
+    display: inline-block;
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: var(--border-radius);
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+    text-align: center;
+  }
+  
+  .btn-primary {
+    background-color: var(--primary-color);
+    color: var(--white);
+  }
+  
+  .btn-primary:hover {
+    background-color: var(--primary-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
+  
+  .btn-submit {
+    width: 100%;
+    margin-top: 1rem;
+    padding: 0.85rem;
+  }
+  
+  /* ================ */
+  /* LINK STYLES */
+  /* ================ */
+  .auth-link {
+    text-align: center;
+    margin-top: 1.5rem;
+    color: var(--secondary-color);
+  }
+  
+  .auth-link a {
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: 600;
+    transition: var(--transition);
+  }
+  
+  .auth-link a:hover {
+    color: var(--primary-dark);
+    text-decoration: underline;
+  }
+  
+  /* ================ */
+  /* SPECIAL FORM ELEMENTS */
+  /* ================ */
+  /* Blood Type Selector (Donor Registration) */
+  .blood-type-select {
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23d32f2f'%3e%3cpath d='M7 10l5 5 5-5z'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 1rem;
+  }
+  
+  /* Medical History Textarea */
+  .medical-history {
+    min-height: 120px;
+  }
+  
+  /* ================ */
+  /* RESPONSIVE STYLES */
+  /* ================ */
+  @media (max-width: 768px) {
+    .auth-container {
+      padding: 1.5rem;
+      margin: 2rem auto;
+    }
+    
+    nav ul {
+      flex-direction: column;
+      align-items: center;
+    }
+    
+    nav ul li {
+      margin: 5px 0;
+    }
+    
+    .form-group input,
+    .form-group select {
+      padding: 0.65rem;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .auth-container {
+      padding: 1.25rem;
+      margin: 1.5rem auto;
+    }
+    
+    header {
+      font-size: 1.25rem;
+      padding: 15px 0;
+    }
+    
+    nav ul li a {
+      font-size: 1rem;
+      padding: 6px 10px;
+    }
+    
+    .btn {
+      padding: 0.65rem 1rem;
+    }
+  }
 
-th, td {
-    padding: 12px;
-    text-align: left;
-    border-bottom: 1px solid #ddd;
-}
 
-th {
-    background-color: #f2f2f2;
-}
 
-tr:hover {
-    background-color: #f5f5f5;
-}
-
-.profile-section, .donation-history {
-    margin-bottom: 30px;
-}
-
-.error {
-    color: #d32f2f;
-    font-size: 14px;
-    margin-top: 5px;
-}
+  /* donor-registration.css */
+/* ================ */
+/* GLOBAL STYLES */
+/* ================ */
+:root {
+    --primary-color: #d32f2f;
+    --primary-dark: #b71c1c;
+    --primary-light: #ff6659;
+    --secondary-color: #333;
+    --light-gray: #f8f9fa;
+    --medium-gray: #ddd;
+    --dark-gray: #666;
+    --white: #fff;
+    --shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    --border-radius: 8px;
+    --transition: all 0.3s ease;
+  }
+  
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+  
+  body {
+    font-family: 'Arial', sans-serif;
+    line-height: 1.6;
+    background-color: var(--light-gray);
+    color: var(--secondary-color);
+    min-height: 100vh;
+    padding: 20px;
+  }
+  
+  /* ================ */
+  /* CONTAINER STYLES */
+  /* ================ */
+  .container {
+    max-width: 500px;
+    margin: 2rem auto;
+    padding: 2rem;
+    background: var(--white);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+  }
+  
+  .container h1 {
+    color: var(--primary-color);
+    text-align: center;
+    margin-bottom: 1.5rem;
+    font-size: 1.8rem;
+  }
+  
+  /* ================ */
+  /* FORM STYLES */
+  /* ================ */
+  #donorRegisterForm {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .form-group {
+    margin-bottom: 1.5rem;
+  }
+  
+  .form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: bold;
+    color: var(--secondary-color);
+  }
+  
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--medium-gray);
+    border-radius: var(--border-radius);
+    font-size: 1rem;
+    transition: var(--transition);
+  }
+  
+  .form-group input:focus,
+  .form-group select:focus,
+  .form-group textarea:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(211, 47, 47, 0.2);
+  }
+  
+  /* Blood Type Select Styling */
+  #reg-blood-type {
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23d32f2f'%3e%3cpath d='M7 10l5 5 5-5z'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 1rem;
+    padding-right: 2rem;
+  }
+  
+  /* Medical History Textarea */
+  #reg-medical-history {
+    min-height: 120px;
+    resize: vertical;
+  }
+  
+  /* ================ */
+  /* BUTTON STYLES */
+  /* ================ */
+  #donorRegisterForm button[type="submit"] {
+    background-color: var(--primary-color);
+    color: var(--white);
+    padding: 0.85rem;
+    border: none;
+    border-radius: var(--border-radius);
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+    width: 100%;
+    margin-top: 0.5rem;
+  }
+  
+  #donorRegisterForm button[type="submit"]:hover {
+    background-color: var(--primary-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
+  
+  /* ================ */
+  /* LINK STYLES */
+  /* ================ */
+  .container p {
+    text-align: center;
+    margin-top: 1.5rem;
+    color: var(--secondary-color);
+  }
+  
+  .container a {
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: 600;
+    transition: var(--transition);
+  }
+  
+  .container a:hover {
+    color: var(--primary-dark);
+    text-decoration: underline;
+  }
+  
+  /* ================ */
+  /* RESPONSIVE STYLES */
+  /* ================ */
+  @media (max-width: 768px) {
+    .container {
+      padding: 1.5rem;
+      margin: 1.5rem auto;
+    }
+    
+    .container h1 {
+      font-size: 1.5rem;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    body {
+      padding: 15px;
+    }
+    
+    .container {
+      padding: 1.25rem;
+      margin: 1rem auto;
+    }
+    
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      padding: 0.65rem;
+    }
+    
+    #donorRegisterForm button[type="submit"] {
+      padding: 0.75rem;
+    }
+  }
